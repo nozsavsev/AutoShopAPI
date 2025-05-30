@@ -16,6 +16,7 @@ namespace AutoShopAPI
 
             //setup database
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            Console.WriteLine($"Using connection string: {connectionString}");
             builder.Services.AddDbContext<AutoShopDbContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
