@@ -43,7 +43,7 @@ namespace AutoShopAPI
                                   {
                                       if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
                                           policy.WithOrigins("http://localhost:3000",
-                                                          "http://localhost:5000",
+                                                          "http://localhost:5005",
                                                           "https://shop.nozsa.com",
                                                           "https://autoshopapi.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
                                       else
