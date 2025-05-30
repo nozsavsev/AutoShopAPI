@@ -38,7 +38,16 @@ namespace AutoShopAPI
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    if (builder.Environment.IsDevelopment())
+                    var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>();
+                    var allowedMethods = builder.Configuration.GetSection("CORS:AllowedMethods").Get<string[]>();
+                    var allowedHeaders = builder.Configuration.GetSection("CORS:AllowedHeaders").Get<string[]>();
+                    var allowCredentials = builder.Configuration.GetValue<bool>("CORS:AllowCredentials", true);
+
+                    if (allowedOrigins != null && allowedOrigins.Length > 0)
+                    {
+                        policy.WithOrigins(allowedOrigins);
+                    }
+                    else if (builder.Environment.IsDevelopment())
                     {
                         policy.WithOrigins(
                             "http://localhost:3000",
@@ -52,13 +61,35 @@ namespace AutoShopAPI
                         policy.WithOrigins("https://shop.nozsa.com");
                     }
 
-                    policy.AllowAnyMethod()
-                          .AllowAnyHeader()
-                          .AllowCredentials();
+                    if (allowedMethods != null && allowedMethods.Length > 0)
+                    {
+                        policy.WithMethods(allowedMethods);
+                    }
+                    else
+                    {
+                        policy.AllowAnyMethod();
+                    }
+
+                    if (allowedHeaders != null && allowedHeaders.Length > 0)
+                    {
+                        policy.WithHeaders(allowedHeaders);
+                    }
+                    else
+                    {
+                        policy.AllowAnyHeader();
+                    }
+
+                    if (allowCredentials)
+                    {
+                        policy.AllowCredentials();
+                    }
                 });
             });
 
             var app = builder.Build();
+
+            // Always use CORS in production
+            app.UseCors();
 
             if (app.Environment.IsDevelopment())
             {
@@ -67,10 +98,6 @@ namespace AutoShopAPI
             }
 
             app.UseHttpsRedirection();
-            
-            // Use CORS before routing and endpoints
-            app.UseCors();
-            
             app.MapControllers();
 
             using (var scope = app.Services.CreateScope())
