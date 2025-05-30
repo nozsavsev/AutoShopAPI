@@ -33,63 +33,29 @@ namespace AutoShopAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            // Configure CORS
+            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
             builder.Services.AddCors(options =>
             {
-                options.AddDefaultPolicy(policy =>
-                {
-                    var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>();
-                    var allowedMethods = builder.Configuration.GetSection("CORS:AllowedMethods").Get<string[]>();
-                    var allowedHeaders = builder.Configuration.GetSection("CORS:AllowedHeaders").Get<string[]>();
-                    var allowCredentials = builder.Configuration.GetValue<bool>("CORS:AllowCredentials", true);
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                                  policy =>
+                                  {
+                                      if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+                                          policy.WithOrigins("http://localhost:3000",
+                                                          "http://localhost:5000",
+                                                          "https://shop.nozsa.com",
+                                                          "https://autoshopapi.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                      else
 
-                    if (allowedOrigins != null && allowedOrigins.Length > 0)
-                    {
-                        policy.WithOrigins(allowedOrigins);
-                    }
-                    else if (builder.Environment.IsDevelopment())
-                    {
-                        policy.WithOrigins(
-                            "http://localhost:3000",
-                            "https://localhost:3000",
-                            "http://localhost:5005",
-                            "https://localhost:5005"
-                        );
-                    }
-                    else
-                    {
-                        policy.WithOrigins("https://shop.nozsa.com");
-                    }
-
-                    if (allowedMethods != null && allowedMethods.Length > 0)
-                    {
-                        policy.WithMethods(allowedMethods);
-                    }
-                    else
-                    {
-                        policy.AllowAnyMethod();
-                    }
-
-                    if (allowedHeaders != null && allowedHeaders.Length > 0)
-                    {
-                        policy.WithHeaders(allowedHeaders);
-                    }
-                    else
-                    {
-                        policy.AllowAnyHeader();
-                    }
-
-                    if (allowCredentials)
-                    {
-                        policy.AllowCredentials();
-                    }
-                });
+                                          policy.WithOrigins("https://autoshopapi.nozsa.com", "http://autoshopapi.nozsa.com",
+                                                          "http://shop.nozsa.com", "http://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                  });
             });
 
             var app = builder.Build();
 
             // Always use CORS in production
-            app.UseCors();
+            app.UseCors(MyAllowSpecificOrigins);
 
             if (app.Environment.IsDevelopment())
             {
