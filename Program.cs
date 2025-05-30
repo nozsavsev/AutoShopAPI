@@ -1,4 +1,3 @@
-
 using AutoShopAPI.DbContexts;
 using AutoShopAPI.Mappings;
 using AutoShopAPI.Repositories;
@@ -20,9 +19,7 @@ namespace AutoShopAPI
             builder.Services.AddDbContext<AutoShopDbContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-
             builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
-
 
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
@@ -36,15 +33,29 @@ namespace AutoShopAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Configure CORS
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll",
-                    builder =>
+                options.AddDefaultPolicy(policy =>
+                {
+                    if (builder.Environment.IsDevelopment())
                     {
-                        builder.AllowAnyOrigin()
-                               .AllowAnyMethod()
-                               .AllowAnyHeader();
-                    });
+                        policy.WithOrigins(
+                            "http://localhost:3000",
+                            "https://localhost:3000",
+                            "http://localhost:5005",
+                            "https://localhost:5005"
+                        );
+                    }
+                    else
+                    {
+                        policy.WithOrigins("https://shop.nozsa.com");
+                    }
+
+                    policy.AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials();
+                });
             });
 
             var app = builder.Build();
@@ -56,7 +67,10 @@ namespace AutoShopAPI
             }
 
             app.UseHttpsRedirection();
-            app.UseCors("AllowAll");
+            
+            // Use CORS before routing and endpoints
+            app.UseCors();
+            
             app.MapControllers();
 
             using (var scope = app.Services.CreateScope())
