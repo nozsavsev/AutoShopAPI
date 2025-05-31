@@ -41,7 +41,7 @@ namespace AutoShopAPI
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                                   policy =>
                                   {
-                                      var allowedHostsRaw = builder.Configuration["AllowedHosts"];
+                                      var allowedHostsRaw = builder.Configuration["corsConfig"];
                                       var allowedHosts = allowedHostsRaw?
                                           .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                                           .ToList() ?? new List<string>();
