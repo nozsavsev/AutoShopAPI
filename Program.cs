@@ -46,6 +46,11 @@ namespace AutoShopAPI
                                           .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                                           .ToList() ?? new List<string>();
 
+                                      for (int i = 0; i < allowedHosts.Count; i++)
+                                      {
+                                          Console.WriteLine($"Allowed Host {i}: {allowedHosts[i]}");
+                                      }
+
                                       policy.WithOrigins(allowedHosts.ToArray())
                                             .AllowAnyHeader()
                                             .AllowAnyMethod()
