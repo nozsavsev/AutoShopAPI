@@ -41,20 +41,14 @@ namespace AutoShopAPI
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                                   policy =>
                                   {
-                                      var allowedHostsRaw = builder.Configuration["corsConfig"];
-                                      var allowedHosts = allowedHostsRaw?
-                                          .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                                          .ToList() ?? new List<string>();
-
-                                      for (int i = 0; i < allowedHosts.Count; i++)
-                                      {
-                                          Console.WriteLine($"Allowed Host {i}: {allowedHosts[i]}");
-                                      }
-
-                                      policy.WithOrigins(allowedHosts.ToArray())
-                                            .AllowAnyHeader()
-                                            .AllowAnyMethod()
-                                            .AllowCredentials();
+                                      if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+                                          policy.WithOrigins("http://localhost:3000",
+                                                          "http://localhost:5005",
+                                                          "https://shop.nozsa.com",
+                                                          "https://autoshopapi.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                      else
+                                          policy.WithOrigins("https://autoshopapi.nozsa.com",
+                                                          "https://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
                                   });
             });
 
