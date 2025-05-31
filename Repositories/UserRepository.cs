@@ -1,6 +1,7 @@
 ﻿using AutoShopAPI.DbContexts;
 using AutoShopAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace AutoShopAPI.Repositories
 {
@@ -13,6 +14,9 @@ namespace AutoShopAPI.Repositories
         public override async Task<IEnumerable<User>> GetAllAsync(int? skip = null, int? take = null)
         {
             IQueryable<User> query = _dbSet;
+
+            query = query.OrderBy(u => u.Id);
+
             if (skip.HasValue && take.HasValue)
             {
                 query = query.Skip(skip.Value).Take(take.Value);
@@ -31,17 +35,22 @@ namespace AutoShopAPI.Repositories
             return await query.ToListAsync();
         }
 
-        public async Task<User?> GetUserWithCarAsync(int userId)
+        public override async Task<IEnumerable<User>> FindAsync(Expression<Func<User, bool>> expression)
         {
-            return await _context.Users
-                .Include(u => u.Car)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            return await _dbSet.Where(expression).Include(u => u.Car).ToListAsync();
         }
 
-        public async Task<User?> GetByEmailAsync(string email)
+        public override async Task<User?> GetByIdAsync(int id)
         {
-            return await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email);
+            return await _dbSet.Where(u => u.Id == id).Include(u => u.Car).FirstOrDefaultAsync();
+        }
+
+        public Task<User?> GetByEmailAsync(string email)
+        {
+            return _dbSet
+                .Where(u => u.Email == email)
+                .Include(u => u.Car)
+                .FirstOrDefaultAsync();
         }
     }
 }

@@ -5,6 +5,5 @@ namespace AutoShopAPI.Repositories
     public interface ICarRepository : IGenericRepository<Car>
     {
         Task<bool> HasAssignedUsersAsync(int carId);
-        Task<Car?> GetCarWithUsersAsync(int carId);
     }
 }

@@ -25,6 +25,17 @@ namespace AutoShopAPI.Repositories
         public virtual async Task<IEnumerable<T>> GetAllAsync(int? skip = null, int? take = null)
         {
             IQueryable<T> query = _dbSet;
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            var keyName = _context.Model.FindEntityType(typeof(T))
+                                .FindPrimaryKey()
+                                .Properties
+                                .Select(x => x.Name)
+                                .First();
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+            query = query.OrderBy(e => EF.Property<object>(e, keyName)); 
+
             if (skip.HasValue && take.HasValue)
             {
                 query = query.Skip(skip.Value).Take(take.Value);

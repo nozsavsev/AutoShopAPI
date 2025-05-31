@@ -40,7 +40,7 @@ namespace AutoShopAPI.Services
 
         public async Task<UserDTO?> GetUserByIdAsync(int id)
         {
-            var user = await _userRepository.GetUserWithCarAsync(id);
+            var user = await _userRepository.GetByIdAsync(id);
             if (user == null)
             {
                 _logger.LogWarning($"User with ID {id} not found");

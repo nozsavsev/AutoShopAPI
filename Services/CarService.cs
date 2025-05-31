@@ -40,7 +40,7 @@ namespace AutoShopAPI.Services
 
         public async Task<CarDTO?> GetCarByIdAsync(int id)
         {
-            var car = await _carRepository.GetCarWithUsersAsync(id);
+            var car = await _carRepository.GetByIdAsync(id);
             if (car == null)
             {
                 _logger.LogWarning($"Car with ID {id} not found");

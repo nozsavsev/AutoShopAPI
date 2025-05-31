@@ -1,6 +1,7 @@
 ﻿using AutoShopAPI.DbContexts;
 using AutoShopAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace AutoShopAPI.Repositories
 {
@@ -14,6 +15,9 @@ namespace AutoShopAPI.Repositories
         public override async Task<IEnumerable<Car>> GetAllAsync(int? skip = null, int? take = null)
         {
             IQueryable<Car> query = _dbSet;
+
+            query.OrderBy(c => c.Id);
+
             if (skip.HasValue && take.HasValue)
             {
                 query = query.Skip(skip.Value).Take(take.Value);
@@ -37,11 +41,14 @@ namespace AutoShopAPI.Repositories
             return await _context.Users.AnyAsync(u => u.CarId == carId);
         }
 
-        public async Task<Car?> GetCarWithUsersAsync(int carId)
+        public override async Task<IEnumerable<Car>> FindAsync(Expression<Func<Car, bool>> expression)
         {
-            return await _context.Cars
-                .Include(c => c.Users)
-                .FirstOrDefaultAsync(c => c.Id == carId);
+            return await _dbSet.Where(expression).Include(u => u.Users).ToListAsync();
+        }
+
+        public override async Task<Car?> GetByIdAsync(int id)
+        {
+            return await _dbSet.Where(u => u.Id == id).Include(u => u.Users).FirstOrDefaultAsync();
         }
     }
 }
