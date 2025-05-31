@@ -48,7 +48,8 @@ namespace AutoShopAPI
                                                           "https://autoshopapi.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
                                       else
                                           policy.WithOrigins("https://autoshopapi.nozsa.com",
-                                                          "https://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                                          "https://shop.nozsa.com", "http://autoshopapi.nozsa.com",
+                                                          "http://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
                                   });
             });
 
