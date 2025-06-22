@@ -1,12 +1,44 @@
-When running frontend, please supply 
-`API_URL=` in .env or environment.
+# AutoShop API
 
-Remarks for frontend:
-I do understand that stuffing react-router into nextjs is a textbook-bad idea, however, I've run into some issues creating and deploying a standalone project in the given time, so I decided to go with this, as project setup is important, but by far not the only thing here.
+A robust and scalable RESTful API for the Auto Shop Management System, built with .NET 8 and PostgreSQL. This backend provides all the necessary endpoints for managing users and cars, with a focus on performance and security.
 
-Remarks for backend: 
-There are some CORS issues when deployed in Docker, so to host it, I had to hardcode some values. Again, I know it's bad don't have time to fix it.
+## Features
 
-Usually, I would exclude appsettings.json from the project or simply not store connection strings in there; however, for the sake of making life easier, since there is no actual sensitive information, I left it here
+- **Full CRUD Operations**: For both Users and Cars.
+- **Entity Framework Core**: For ORM and database management.
+- **PostgreSQL Integration**: A powerful open-source object-relational database system.
+- **RESTful Architecture**: Clean, predictable, and resource-oriented API design.
+- **Dependency Injection**: Following best practices for maintainable and testable code.
+- **Database Migrations**: Easy database schema management with EF Core migrations.
 
-When running, please make sure the database is up and running before api starts. Otherwise, it will fail to apply migrations and die
+## Technology Stack
+
+### Backend
+
+- **.NET 8**: The latest version of the .NET framework for building high-performance applications.
+- **ASP.NET Core**: For building web APIs.
+- **Entity Framework Core**: Modern object-database mapper for .NET.
+- **PostgreSQL**: As the relational database.
+- **Npgsql**: .NET data provider for PostgreSQL.
+
+### Development & Tools
+
+- **Visual Studio / Rider / VS Code**: Recommended IDEs.
+- **.NET CLI**: Command-line interface for .NET.
+- **Docker**: For containerization.
+
+## Installation & Setup
+
+### Prerequisites
+
+- .NET 8 SDK
+- PostgreSQL Server
+- Git
+
+- Supply appsettings.json or set enviromental variables for the following:
+    - `ConnectionStrings_DefaultConnection`
+    - `corsConfig` // comma separated allowed hosts for cors
+
+## API Endpoints
+
+The API exposes a set of RESTful endpoints for interacting with the application's resources. You can explore the available endpoints using the Swagger UI, which is available at `/swagger` when the application is running in a development environment.

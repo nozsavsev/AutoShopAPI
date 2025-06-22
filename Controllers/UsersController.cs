@@ -17,6 +17,15 @@ namespace AutoShopAPI.Controllers
             _logger = logger;
         }
 
+        [HttpGet("search")]
+        public async Task<ActionResult<AllUsersDTO>> SearchUsers(string? textMatch, int? skip = null, int? take = null)
+        {
+            var cars = await _userService.SearchUsersAsync(textMatch, skip, take);
+            return Ok(cars);
+        }
+
+
+
         [HttpGet]
         public async Task<ActionResult<AllUsersDTO>> GetUsers(int? skip = null, int? take = null)
         {

@@ -52,5 +52,39 @@ namespace AutoShopAPI.Repositories
                 .Include(u => u.Car)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<IEnumerable<User>> FindUsers(string? textMatch, int? skip = null, int? take = null)
+        {
+            var query = _dbSet
+                .Include(u => u.Car).AsQueryable();
+
+            if (textMatch != null)
+                query = query.Where(u =>
+                 (u.Name.ToLower().Contains(textMatch.ToLower())) ||
+                 (u.Email.ToLower().Contains(textMatch.ToLower())) ||
+                 (u.Car != null && u.Car.Company.ToLower().Contains(textMatch.ToLower())) ||
+                 (u.Car != null && u.Car.Model.ToLower().Contains(textMatch.ToLower()))
+                 );
+
+            return await query.OrderBy(u => u.Id)
+                .Skip(skip ?? 0)
+                .Take(take ?? int.MaxValue).ToListAsync();
+        }
+
+        public async Task<int> CountFoundUsers(string? textMatch)
+        {
+            var query = _dbSet
+                 .Include(u => u.Car).AsQueryable();
+            if (textMatch != null)
+                query = query.Where(u => 
+                u.Name.ToLower().Contains(textMatch.ToLower()) || 
+                u.Email.ToLower().Contains(textMatch.ToLower()) || 
+                (u.Car != null && u.Car.Company.ToLower().Contains(textMatch.ToLower())) ||
+                (u.Car != null && u.Car.Model.ToLower().Contains(textMatch.ToLower()))
+
+                );
+
+            return await query.CountAsync();
+        }
     }
 }

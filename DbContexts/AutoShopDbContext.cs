@@ -22,11 +22,11 @@ namespace AutoShopAPI.DbContexts
                 entity.Property(e => e.Company).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Model).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.CreatedAt)
-                    .HasColumnType("timestamp")
+                    .HasColumnType("timestamp with time zone")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt)
-                    .HasColumnType("timestamp")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
             modelBuilder.Entity<User>(entity =>
@@ -36,22 +36,17 @@ namespace AutoShopAPI.DbContexts
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Password).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.CreatedAt)
-                    .HasColumnType("timestamp")
+                    .HasColumnType("timestamp with time zone")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.UpdatedAt)
-                    .HasColumnType("timestamp")
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.HasOne(e => e.Car)
                       .WithMany(c => c.Users)
                       .HasForeignKey(e => e.CarId)
                       .OnDelete(DeleteBehavior.SetNull);
             });
-
-
-
         }
-
     }
 }

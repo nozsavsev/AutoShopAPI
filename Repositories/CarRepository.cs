@@ -1,11 +1,12 @@
 ﻿using AutoShopAPI.DbContexts;
 using AutoShopAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using System.Linq.Expressions;
 
 namespace AutoShopAPI.Repositories
 {
-    public class CarRepository : GenericRepository<Car>, ICarRepository 
+    public class CarRepository : GenericRepository<Car>, ICarRepository
     {
         public CarRepository(AutoShopDbContext context) : base(context)
         {
@@ -49,6 +50,35 @@ namespace AutoShopAPI.Repositories
         public override async Task<Car?> GetByIdAsync(int id)
         {
             return await _dbSet.Where(u => u.Id == id).Include(u => u.Users).FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<Car>> FindCars(string? textMatch, int? skip = null, int? take = null)
+        {
+            var query = _dbSet
+            .Include(u => u.Users).AsQueryable();
+            
+            if (textMatch != null)
+                query = query.Where(c => 
+                c.Company.ToLower().Contains(textMatch.ToLower()) || 
+                c.Model.ToLower().Contains(textMatch.ToLower()) || 
+                (c.Users != null && c.Users.Any(u => u.Name.ToLower().Contains(textMatch.ToLower()) || u.Email.ToLower().Contains(textMatch.ToLower()))));
+            
+            return await query.OrderBy(u => u.Id)
+                 .Skip(skip ?? 0)
+                 .Take(take ?? int.MaxValue).ToListAsync();
+        }
+
+        public async Task<int> CountFoundCars(string? textMatch)
+        {
+            var query = _dbSet
+               .Include(u => u.Users).AsQueryable();
+            if (textMatch != null)
+                query = query.Where(c => 
+                c.Company.ToLower().Contains(textMatch.ToLower()) ||
+                c.Model.ToLower().Contains(textMatch.ToLower()) ||
+                (c.Users != null && c.Users.Any(u => u.Name.ToLower().Contains(textMatch.ToLower()) || u.Email.ToLower().Contains(textMatch.ToLower()))));
+            return await query.CountAsync();
+
         }
     }
 }

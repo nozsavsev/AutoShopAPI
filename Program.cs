@@ -18,7 +18,7 @@ namespace AutoShopAPI
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             Console.WriteLine($"Using connection string: {connectionString}");
             builder.Services.AddDbContext<AutoShopDbContext>(options =>
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+                options.UseNpgsql(connectionString));
 
             builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
 
@@ -41,15 +41,24 @@ namespace AutoShopAPI
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                                   policy =>
                                   {
-                                      if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-                                          policy.WithOrigins("http://localhost:3000",
-                                                          "http://localhost:5005",
-                                                          "https://shop.nozsa.com",
-                                                          "https://autoshopapi.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                      var corsOrigins = builder.Configuration.GetSection("corsConfig").Value;
+                                      if (!string.IsNullOrEmpty(corsOrigins))
+                                      {
+                                          var origins = corsOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                                                  .Select(o => o.Trim())
+                                                                  .ToArray();
+                                          policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                      }
                                       else
-                                          policy.WithOrigins("https://autoshopapi.nozsa.com",
-                                                          "https://shop.nozsa.com", "http://autoshopapi.nozsa.com",
-                                                          "http://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                      {
+                                          // Fallback to default origins if configuration is missing
+                                          if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+                                              policy.WithOrigins("http://localhost:3000",
+                                                              "http://localhost:5005").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                          else
+                                              policy.WithOrigins("https://autoshopapi.nozsa.com",
+                                                              "https://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                      }
                                   });
             });
 

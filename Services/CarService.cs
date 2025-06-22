@@ -90,5 +90,17 @@ namespace AutoShopAPI.Services
             await _carRepository.DeleteAsync(car);
             _logger.LogInformation($"Deleted car with ID {id}");
         }
+
+        public async Task<AllCarsDTO> SearchCarsAsync(string? textMatch = null, int? skip = null, int? take = null)
+        {
+            var cars = new AllCarsDTO();
+            cars.Cars = _mapper.Map<IEnumerable<CarDTO>>(await _carRepository.FindCars(textMatch, skip, take));
+
+            cars.TotalCount = await _carRepository.CountFoundCars(textMatch);
+
+            _logger.LogInformation($"Searched cars with text match '{textMatch ?? "null"}' and found {cars.TotalCount}, returning {cars.Cars.Count()}");
+
+            return cars;
+        }
     }
 }

@@ -126,5 +126,18 @@ namespace AutoShopAPI.Services
             await _userRepository.DeleteAsync(user);
             _logger.LogInformation("Deleted user with ID {UserId}", id);
         }
+
+        public async Task<AllUsersDTO> SearchUsersAsync(string? textMatch = null, int? skip = null, int? take = null)
+        {
+            AllUsersDTO users = new AllUsersDTO();
+
+            users.Users = _mapper.Map<IEnumerable<UserDTO>>(await _userRepository.FindUsers(textMatch, skip, take));
+
+            users.TotalCount = await _userRepository.CountFoundUsers(textMatch);
+
+            _logger.LogInformation($"Searched users with text match '{textMatch ?? "null"}' and found {users.TotalCount}, returning {users.Users.Count()}");
+
+            return users;
+        }
     }
 }
