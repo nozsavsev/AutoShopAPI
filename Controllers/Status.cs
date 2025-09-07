@@ -1,6 +1,4 @@
-﻿using AutoShopAPI.Models.DTOs;
-using AutoShopAPI.Services;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace AutoShopAPI.Controllers
 {
@@ -14,10 +12,7 @@ namespace AutoShopAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult> IsAlive()
-        {
-            return Ok(true);
-        }
+        public ActionResult<bool> IsAlive() => Ok(true);
 
     }
 }

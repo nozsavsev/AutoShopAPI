@@ -12,12 +12,13 @@ namespace AutoShopAPI.Mappings
             CreateMap<Car, CarDTO>();
             CreateMap<Car, CarBasicDTO>();
             CreateMap<CreateUpdateCarDTO, Car>();
-            CreateMap<CreateUpdateCarDTO, Car>();
 
             // User mappings
             CreateMap<User, UserDTO>();
             CreateMap<User, UserBasicDTO>();
-            CreateMap<CreateUpdateUserDTO, User>();
+            CreateMap<CreateUserDTO, User>();
+            CreateMap<UpdateUserDTO, User>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }

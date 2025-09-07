@@ -19,88 +19,73 @@ namespace AutoShopAPI.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<AllCarsDTO>> SearchCars(string? textMatch, int? skip = null, int? take = null)
+        public async Task<ActionResult<AllCarsDTO>> SearchCars([FromQuery] SearchCarFilters filters)
         {
-            var cars = await _carService.SearchCarsAsync(textMatch, skip, take);
-            return Ok(cars);
+            var result = await _carService.SearchCarsAsync(filters);
+            if (!result.Success)
+            {
+                return Problem(result.Message, statusCode: 400);
+            }
+            return Ok(result.Value);
         }
 
-        [HttpGet]
-        public async Task<ActionResult<AllCarsDTO>> GetCars(int? skip = null, int? take = null)
-        {
-            var cars = await _carService.GetAllCarsAsync(skip, take);
-            return Ok(cars);
-        }
 
         [HttpGet]
         [Route("{id}")]
         public async Task<ActionResult<CarDTO>> GetCar(int id)
         {
-            var car = await _carService.GetCarByIdAsync(id);
-            if (car == null)
+            var result = await _carService.GetCarByIdAsync(id);
+            if (!result.Success)
             {
-                return NotFound();
+                return Problem(result.Message, statusCode: 404);
             }
-            return Ok(car);
+            return Ok(result.Value);
         }
 
         [HttpPost]
-        public async Task<ActionResult<CarDTO>> CreateCar(CreateUpdateCarDTO CreateUpdateCarDTO)
+        public async Task<ActionResult<CarDTO>> CreateCar(CreateUpdateCarDTO createUpdateCarDTO)
         {
-            try
+            var result = await _carService.CreateCarAsync(createUpdateCarDTO);
+            if (!result.Success)
             {
-                var car = await _carService.CreateCarAsync(CreateUpdateCarDTO);
-                return CreatedAtAction(nameof(GetCar), new { id = car.Id }, car);
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (Exception ex)
+            return Ok(result.Value);
+        }
+
+        [HttpPost("bulk")]
+        public async Task<ActionResult<IEnumerable<CarDTO>>> BulkCreateCars(IEnumerable<CreateUpdateCarDTO> createUpdateCarDTOs)
+        {
+            var result = await _carService.BulkCreateCarsAsync(createUpdateCarDTOs);
+            if (!result.Success)
             {
-                _logger.LogError(ex, "Error creating car");
-                return BadRequest(ex.Message);
+                return Problem(result.Message, statusCode: 400);
             }
+            return Ok(result.Value);
         }
 
         [HttpPut]
         [Route("{id}")]
 
-        public async Task<ActionResult<CarDTO>> UpdateCar(int id, CreateUpdateCarDTO CreateUpdateCarDTO)
+        public async Task<ActionResult<CarDTO>> UpdateCar(int id, CreateUpdateCarDTO createUpdateCarDTO)
         {
-            try
+            var result = await _carService.UpdateCarAsync(id, createUpdateCarDTO);
+            if (!result.Success)
             {
-                var car = await _carService.UpdateCarAsync(id, CreateUpdateCarDTO);
-                return Ok(car);
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating car with ID {CarId}", id);
-                return BadRequest(ex.Message);
-            }
+            return Ok(result.Value);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCar(int id)
         {
-            try
+            var result = await _carService.DeleteCarAsync(id);
+            if (!result.Success)
             {
-                await _carService.DeleteCarAsync(id);
-                return NoContent();
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting car with ID {CarId}", id);
-                return BadRequest(ex.Message);
-            }
+            return Ok(true);
         }
     }
 

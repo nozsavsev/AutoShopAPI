@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using AutoShopAPI.DbContexts;
+﻿using AutoShopAPI.DbContexts;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoShopAPI.Repositories
@@ -8,11 +7,83 @@ namespace AutoShopAPI.Repositories
     {
         protected readonly AutoShopDbContext _context;
         protected readonly DbSet<T> _dbSet;
-
         public GenericRepository(AutoShopDbContext context)
         {
             _context = context;
             _dbSet = context.Set<T>();
+        }
+
+        public virtual IQueryable<T> BuildQuery(QueryCallback<T>? queryCallback = null)
+        {
+            var baseQuery = _dbSet
+                .AsNoTracking();
+
+            return queryCallback?.Invoke(baseQuery).IgnoreAutoIncludes() ?? baseQuery;
+        }
+
+        public virtual string GetKeyProperty()
+        {
+            var keyName =  _context.Model.FindEntityType(typeof(T))?
+                 .FindPrimaryKey()?
+                 .Properties.Select(x => x.Name)
+                 .FirstOrDefault();
+            if (keyName == null)
+            {
+                throw new InvalidOperationException($"Entity {typeof(T).Name} does not have a primary key defined.");
+            }
+
+            return keyName;
+        }
+
+
+
+        public virtual async Task<T?> GetByIdAsync(int id, QueryCallback<T>? queryCallback = null)
+        {
+            var query = BuildQuery(queryCallback);
+
+            var keyName = GetKeyProperty();
+
+            return await query.Where(e => EF.Property<int>(e, keyName) == id)
+                              .FirstOrDefaultAsync();
+        }
+
+        public virtual async Task<List<T>?> GetManyByIdAsync(List<int> ids, QueryCallback<T>? queryCallback = null)
+        {
+            var query = BuildQuery(queryCallback);
+
+            var keyName = GetKeyProperty();
+
+            return await query.Where(e => ids.Contains(EF.Property<int>(e, keyName))).ToListAsync();
+        }
+
+
+        public virtual async Task<T> AddAsync(T entity, QueryCallback<T>? queryCallback = null)
+        {
+            var newEntity = await _dbSet.AddAsync(entity);
+            await _context.SaveChangesAsync();
+
+            // Re-query to load navigation properties according to policy
+            var keyName = GetKeyProperty();
+            var keyValue = (int)(typeof(T).GetProperty(keyName)!.GetValue(newEntity.Entity)!
+                                 ?? throw new InvalidOperationException($"Could not read key value from {typeof(T).Name}"));
+
+            var reloaded = await GetByIdAsync(keyValue, queryCallback);
+            if (reloaded == null)
+            {
+                throw new InvalidOperationException($"Failed to reload newly added {typeof(T).Name} by key {keyValue}.");
+            }
+            return reloaded;
+        }
+
+        public virtual async Task<List<T>> AddManyAsync(List<T> entities, QueryCallback<T>? queryCallback = null)
+        {
+            await _dbSet.AddRangeAsync(entities);
+            await _context.SaveChangesAsync();
+
+            var keyName = GetKeyProperty();
+            var ids = entities.Select(e => (int)(typeof(T).GetProperty(keyName)!.GetValue(e)!)).ToList();
+            var reloaded = await GetManyByIdAsync(ids, queryCallback) ?? new List<T>();
+            return reloaded;
         }
 
         public virtual async Task<long> CountAllAsync()
@@ -21,59 +92,32 @@ namespace AutoShopAPI.Repositories
         }
 
 
-
-        public virtual async Task<IEnumerable<T>> GetAllAsync(int? skip = null, int? take = null)
-        {
-            IQueryable<T> query = _dbSet;
-
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-            var keyName = _context.Model.FindEntityType(typeof(T))
-                                .FindPrimaryKey()
-                                .Properties
-                                .Select(x => x.Name)
-                                .First();
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-            query = query.OrderBy(e => EF.Property<object>(e, keyName)); 
-
-            if (skip.HasValue && take.HasValue)
-            {
-                query = query.Skip(skip.Value).Take(take.Value);
-            }
-            else if (skip.HasValue)
-            {
-                query = query.Skip(skip.Value);
-            }
-            else if (take.HasValue)
-            {
-                query = query.Take(take.Value);
-            }
-            return await query.ToListAsync();
-        }
-
-        public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> expression)
-        {
-            return await _dbSet.Where(expression).ToListAsync();
-        }
-
-        public virtual async Task<T?> GetByIdAsync(int id)
-        {
-            return await _dbSet.FindAsync(id);
-        }
-
-        public virtual async Task<T> AddAsync(T entity)
-        {
-            await _dbSet.AddAsync(entity);
-            await _context.SaveChangesAsync();
-            return entity;
-        }
-
-        public virtual async Task<T> UpdateAsync(T entity)
+        public virtual async Task<T> UpdateAsync(T entity, QueryCallback<T>? queryCallback = null)
         {
             _dbSet.Update(entity);
             await _context.SaveChangesAsync();
-            return entity;
+
+            var keyName = GetKeyProperty();
+            var keyValue = (int)(typeof(T).GetProperty(keyName)!.GetValue(entity)!);
+            var reloaded = await GetByIdAsync(keyValue, queryCallback);
+            if (reloaded == null)
+            {
+                throw new InvalidOperationException($"Failed to reload updated {typeof(T).Name} by key {keyValue}.");
+            }
+            return reloaded;
         }
+
+        public virtual async Task<List<T>> UpdateManyAsync(List<T> entities, QueryCallback<T>? queryCallback = null)
+        {
+            _dbSet.UpdateRange(entities);
+            await _context.SaveChangesAsync();
+
+            var keyName = GetKeyProperty();
+            var ids = entities.Select(e => (int)(typeof(T).GetProperty(keyName)!.GetValue(e)!)).ToList();
+            var reloaded = await GetManyByIdAsync(ids, queryCallback) ?? new List<T>();
+            return reloaded;
+        }
+
 
         public virtual async Task DeleteAsync(T entity)
         {
@@ -81,9 +125,24 @@ namespace AutoShopAPI.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public virtual async Task DeleteManyAsync(List<T> entities)
+        {
+            _dbSet.RemoveRange(entities);
+            await _context.SaveChangesAsync();
+        }
+
+        public virtual async Task DeleteManyAsync(List<int> ids)
+        {
+            var keyName = GetKeyProperty();
+            var entities = await _dbSet.Where(e => ids.Contains(EF.Property<int>(e, keyName))).ToListAsync();
+            _dbSet.RemoveRange(entities);
+            await _context.SaveChangesAsync();
+        }
+
         public virtual async Task<bool> ExistsAsync(int id)
         {
-            return await _dbSet.FindAsync(id) != null;
+            var keyName = GetKeyProperty();
+            return await _dbSet.AnyAsync(e => EF.Property<int>(e, keyName) == id);
         }
     }
 }

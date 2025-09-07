@@ -1,7 +1,8 @@
 ﻿using AutoShopAPI.DbContexts;
 using AutoShopAPI.Models;
+using AutoShopAPI.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
+
 
 namespace AutoShopAPI.Repositories
 {
@@ -9,81 +10,88 @@ namespace AutoShopAPI.Repositories
     {
         public UserRepository(AutoShopDbContext context) : base(context)
         {
+
         }
 
-        public override async Task<IEnumerable<User>> GetAllAsync(int? skip = null, int? take = null)
+        public Task<User?> GetByEmailAsync(string email, QueryCallback<User>? queryCallback = null)
         {
-            IQueryable<User> query = _dbSet;
+            var query = BuildQuery(queryCallback);
 
-            query = query.OrderBy(u => u.Id);
-
-            if (skip.HasValue && take.HasValue)
-            {
-                query = query.Skip(skip.Value).Take(take.Value);
-            }
-            else if (skip.HasValue)
-            {
-                query = query.Skip(skip.Value);
-            }
-            else if (take.HasValue)
-            {
-                query = query.Take(take.Value);
-            }
-
-            query = query.Include(u => u.Car);
-
-            return await query.ToListAsync();
-        }
-
-        public override async Task<IEnumerable<User>> FindAsync(Expression<Func<User, bool>> expression)
-        {
-            return await _dbSet.Where(expression).Include(u => u.Car).ToListAsync();
-        }
-
-        public override async Task<User?> GetByIdAsync(int id)
-        {
-            return await _dbSet.Where(u => u.Id == id).Include(u => u.Car).FirstOrDefaultAsync();
-        }
-
-        public Task<User?> GetByEmailAsync(string email)
-        {
-            return _dbSet
+            return query
                 .Where(u => u.Email == email)
-                .Include(u => u.Car)
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<User>> FindUsers(string? textMatch, int? skip = null, int? take = null)
+        private IQueryable<User> ConfigureFindUserQuery(SearchUserFilters filters, QueryCallback<User>? queryCallback = null)
         {
-            var query = _dbSet
-                .Include(u => u.Car).AsQueryable();
+            var query = BuildQuery(queryCallback);
 
-            if (textMatch != null)
-                query = query.Where(u =>
-                 (u.Name.ToLower().Contains(textMatch.ToLower())) ||
-                 (u.Email.ToLower().Contains(textMatch.ToLower())) ||
-                 (u.Car != null && u.Car.Company.ToLower().Contains(textMatch.ToLower())) ||
-                 (u.Car != null && u.Car.Model.ToLower().Contains(textMatch.ToLower()))
-                 );
 
-            return await query.OrderBy(u => u.Id)
-                .Skip(skip ?? 0)
-                .Take(take ?? int.MaxValue).ToListAsync();
+            if (!string.IsNullOrWhiteSpace(filters.TextMatch))
+            {
+                var trimmed = filters.TextMatch!.Trim();
+                var text = $"%{trimmed}%";
+
+                if (int.TryParse(trimmed, out var idMatch))
+                {
+                    query = query.Where(u =>
+                        u.Id == idMatch ||
+                        EF.Functions.ILike(u.Name, text) ||
+                        EF.Functions.ILike(u.Email, text)
+                    );
+                }
+                else
+                {
+                    query = query.Where(u =>
+                        EF.Functions.ILike(u.Name, text) ||
+                        EF.Functions.ILike(u.Email, text)
+                    );
+                }
+            }
+
+            switch (filters.SortBy)
+            {
+                case UserSortBy.NameAsc:
+                    query = query.OrderBy(u => u.Name);
+                    break;
+                case UserSortBy.NameDesc:
+                    query = query.OrderByDescending(u => u.Name);
+                    break;
+                case UserSortBy.EmailAsc:
+                    query = query.OrderBy(u => u.Email);
+                    break;
+                case UserSortBy.EmailDesc:
+                    query = query.OrderByDescending(u => u.Email);
+                    break;
+                case UserSortBy.CreatedAtAsc:
+                    query = query.OrderBy(u => u.CreatedAt);
+                    break;
+                case UserSortBy.CreatedAtDesc:
+                    query = query.OrderByDescending(u => u.CreatedAt);
+                    break;
+                case UserSortBy.UpdatedAtAsc:
+                    query = query.OrderBy(u => u.UpdatedAt);
+                    break;
+                case UserSortBy.UpdatedAtDesc:
+                    query = query.OrderByDescending(u => u.UpdatedAt);
+                    break;
+            }
+
+            return query;
         }
 
-        public async Task<int> CountFoundUsers(string? textMatch)
+        public async Task<IEnumerable<User>> FindUsersAsync(SearchUserFilters filters, QueryCallback<User>? queryCallback = null)
         {
-            var query = _dbSet
-                 .Include(u => u.Car).AsQueryable();
-            if (textMatch != null)
-                query = query.Where(u => 
-                u.Name.ToLower().Contains(textMatch.ToLower()) || 
-                u.Email.ToLower().Contains(textMatch.ToLower()) || 
-                (u.Car != null && u.Car.Company.ToLower().Contains(textMatch.ToLower())) ||
-                (u.Car != null && u.Car.Model.ToLower().Contains(textMatch.ToLower()))
+            var query = ConfigureFindUserQuery(filters, queryCallback);
+            return await query
+                .Skip(filters.Skip ?? 0)
+                .Take(filters.Take ?? 10)
+                .ToListAsync();
+        }
 
-                );
-
+        public async Task<int> CountFoundUsersAsync(SearchUserFilters filters)
+        {
+            var query = ConfigureFindUserQuery(filters);
             return await query.CountAsync();
         }
     }

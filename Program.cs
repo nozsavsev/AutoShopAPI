@@ -13,10 +13,10 @@ namespace AutoShopAPI
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllers();
+            builder.Services.AddProblemDetails();
 
             //setup database
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-            Console.WriteLine($"Using connection string: {connectionString}");
             builder.Services.AddDbContext<AutoShopDbContext>(options =>
                 options.UseNpgsql(connectionString));
 
@@ -34,15 +34,16 @@ namespace AutoShopAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+            var myAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy(name: MyAllowSpecificOrigins,
+                options.AddPolicy(name: myAllowSpecificOrigins,
                                   policy =>
                                   {
-                                      var corsOrigins = builder.Configuration.GetSection("corsConfig").Value;
-                                      if (!string.IsNullOrEmpty(corsOrigins))
+                                       var corsOrigins = builder.Configuration.GetSection("corsConfig").Value;
+                                       var env = builder.Environment.EnvironmentName;
+                                       if (!string.IsNullOrEmpty(corsOrigins))
                                       {
                                           var origins = corsOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                                                   .Select(o => o.Trim())
@@ -51,21 +52,21 @@ namespace AutoShopAPI
                                       }
                                       else
                                       {
-                                          // Fallback to default origins if configuration is missing
-                                          if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-                                              policy.WithOrigins("http://localhost:3000",
-                                                              "http://localhost:5005").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-                                          else
-                                              policy.WithOrigins("https://autoshopapi.nozsa.com",
-                                                              "https://shop.nozsa.com").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                           // No configured origins; in development, allow localhost defaults, otherwise deny by default
+                                           if (builder.Environment.IsDevelopment())
+                                           {
+                                               policy.WithOrigins("http://localhost:3000", "http://localhost:5005").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                                           }
                                       }
                                   });
             });
 
             var app = builder.Build();
 
+            app.UseExceptionHandler();
+
             // Always use CORS in production
-            app.UseCors(MyAllowSpecificOrigins);
+            app.UseCors(myAllowSpecificOrigins);
 
             if (app.Environment.IsDevelopment())
             {
@@ -76,8 +77,9 @@ namespace AutoShopAPI
             app.UseHttpsRedirection();
             app.MapControllers();
 
-            using (var scope = app.Services.CreateScope())
+            if (app.Environment.IsDevelopment())
             {
+                using var scope = app.Services.CreateScope();
                 var services = scope.ServiceProvider;
                 try
                 {

@@ -18,95 +18,69 @@ namespace AutoShopAPI.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<AllUsersDTO>> SearchUsers(string? textMatch, int? skip = null, int? take = null)
+        public async Task<ActionResult<AllUsersDTO>> SearchUsers([FromQuery] SearchUserFilters filters)
         {
-            var cars = await _userService.SearchUsersAsync(textMatch, skip, take);
-            return Ok(cars);
-        }
-
-
-
-        [HttpGet]
-        public async Task<ActionResult<AllUsersDTO>> GetUsers(int? skip = null, int? take = null)
-        {
-            var users = await _userService.GetAllUsersAsync(skip, take);
-            return Ok(users);
+            var result = await _userService.SearchUsersAsync(filters);
+            if (!result.Success)
+            {
+                return Problem(result.Message, statusCode: 400);
+            }
+            return Ok(result.Value);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDTO>> GetUser(int id)
         {
-            var user = await _userService.GetUserByIdAsync(id);
-            if (user == null)
+            var result = await _userService.GetUserByIdAsync(id);
+            if (!result.Success)
             {
-                return NotFound();
+                return Problem(result.Message, statusCode: 404);
             }
-            return Ok(user);
+            return Ok(result.Value);
         }
 
         [HttpPost]
-        public async Task<ActionResult<UserDTO>> CreateUser(CreateUpdateUserDTO createUserDTO)
+        public async Task<ActionResult<UserDTO>> CreateUser(CreateUserDTO createUserDTO)
         {
-            try
+            var result = await _userService.CreateUserAsync(createUserDTO);
+            if (!result.Success)
             {
-                var user = await _userService.CreateUserAsync(createUserDTO);
-                return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (InvalidOperationException ex)
+            return Ok(result.Value);
+        }
+
+        [HttpPost("bulk")]
+        public async Task<ActionResult<IEnumerable<UserDTO>>> BulkCreateUsers(IEnumerable<CreateUserDTO> createUserDTOs)
+        {
+            var result = await _userService.BulkCreateUsersAsync(createUserDTOs);
+            if (!result.Success)
             {
-                return BadRequest(ex.Message);
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (KeyNotFoundException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating user");
-                return BadRequest(ex.Message);
-            }
+            return Ok(result.Value);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<UserDTO>> UpdateUser(int id, CreateUpdateUserDTO updateUserDTO)
+        public async Task<ActionResult<UserDTO>> UpdateUser(int id, UpdateUserDTO updateUserDTO)
         {
-            try
+            var result = await _userService.UpdateUserAsync(id, updateUserDTO);
+            if (!result.Success)
             {
-                var user = await _userService.UpdateUserAsync(id, updateUserDTO);
-                return Ok(user);
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating user with ID {UserId}", id);
-                return BadRequest(ex.Message);
-            }
+            return Ok(result.Value);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            try
+            var result = await _userService.DeleteUserAsync(id);
+            if (!result.Success)
             {
-                await _userService.DeleteUserAsync(id);
-                return NoContent();
+                return Problem(result.Message, statusCode: 400);
             }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting user with ID {UserId}", id);
-                return BadRequest(ex.Message);
-            }
+            return Ok();
         }
     }
 }
