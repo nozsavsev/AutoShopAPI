@@ -1,5 +1,5 @@
 # AutoShop API
-
+*a test assignment for one of the interviews meant to showcase applicable best practices in modern frontend and backend development
 A robust and scalable RESTful API for the Auto Shop Management System, built with .NET 8 and PostgreSQL. This backend provides all the necessary endpoints for managing users and cars, with a focus on performance and security.
 
 ## Features
